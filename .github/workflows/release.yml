@@ -17,13 +17,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.9"
-      - name: Install dependencies
-        run: pip install poetry && poetry install
       - name: Check _version.py was updated
         env:
           PYTHONPATH: ./tracely/src
         run: |-
-          VERSION_TO_RELEASE=v$(python -c "from tracely import __version__; print(__version__)")
+          VERSION_TO_RELEASE=v$(python ./tracely/src/tracely/_version.py)
           if [ "${{ github.ref_name }}" != "$VERSION_TO_RELEASE" ]; then
             echo "Release triggered for tag ${{ github.ref_name }} but version.py contains $VERSION_TO_RELEASE"
             exit 1
