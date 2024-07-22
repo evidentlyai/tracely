@@ -19,7 +19,7 @@ jobs:
           python-version: "3.9"
       - name: Check _version.py was updated
         env:
-          PYTHONPATH: ./src
+          PYTHONPATH: ./tracely/src
         run: |-
           VERSION_TO_RELEASE=v$(python -c "from tracely import __version__; print(__version__)")
           if [ "${{ github.ref_name }}" != "$VERSION_TO_RELEASE" ]; then
