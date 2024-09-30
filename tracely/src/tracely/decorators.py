@@ -43,7 +43,14 @@ def trace_event(
                 try:
                     result = f(*args, **kwargs)
                     if result is not None and track_output:
-                        span.set_attribute("result", str(result))
+                        if isinstance(result, dict):
+                            for k, v in result.items():
+                                span.set_attribute(f"result.{k}", str(v))
+                        elif isinstance(result, (tuple, list)):
+                            for idx, item in enumerate(result):
+                                span.set_attribute(f"result.{idx}", str(item))
+                        else:
+                            span.set_attribute("result", str(result))
                     span.set_status(StatusCode.OK)
                 except Exception as e:
                     span.set_attribute("exception", str(e))
