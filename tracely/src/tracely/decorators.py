@@ -11,6 +11,7 @@ def trace_event(
     track_args: Optional[List[str]] = None,
     ignore_args: Optional[List[str]] = None,
     track_output: Optional[bool] = True,
+    parse_output: Optional[bool] = True,
 ):
     """
     Trace given function call.
@@ -43,10 +44,10 @@ def trace_event(
                 try:
                     result = f(*args, **kwargs)
                     if result is not None and track_output:
-                        if isinstance(result, dict):
+                        if parse_output and isinstance(result, dict):
                             for k, v in result.items():
                                 span.set_attribute(f"result.{k}", str(v))
-                        elif isinstance(result, (tuple, list)):
+                        elif parse_output and isinstance(result, (tuple, list)):
                             for idx, item in enumerate(result):
                                 span.set_attribute(f"result.{idx}", str(item))
                         else:
