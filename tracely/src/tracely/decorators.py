@@ -22,6 +22,7 @@ def trace_event(
                     if set to [] do not capture any arguments
         ignore_args: list of arguments to ignore, if set to None - do not ignore any arguments.
         track_output: track the output of the function call
+        parse_output: parse the output (dict, list and tuple) of the function call
     """
 
     def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -44,14 +45,7 @@ def trace_event(
                 try:
                     result = f(*args, **kwargs)
                     if result is not None and track_output:
-                        if parse_output and isinstance(result, dict):
-                            for k, v in result.items():
-                                span.set_attribute(f"result.{k}", str(v))
-                        elif parse_output and isinstance(result, (tuple, list)):
-                            for idx, item in enumerate(result):
-                                span.set_attribute(f"result.{idx}", str(item))
-                        else:
-                            span.set_attribute("result", str(result))
+                        set_result(span, result, parse_output)
                     span.set_status(StatusCode.OK)
                 except Exception as e:
                     span.set_attribute("exception", str(e))
@@ -62,3 +56,14 @@ def trace_event(
         return func
 
     return wrapper
+
+
+def set_result(span, result, parse_output: bool):
+    if parse_output and isinstance(result, dict):
+        for k, v in result.items():
+            span.set_attribute(f"result.{k}", str(v))
+    elif parse_output and isinstance(result, (tuple, list)):
+        for idx, item in enumerate(result):
+            span.set_attribute(f"result.{idx}", str(item))
+    else:
+        span.set_attribute("result", str(result))
