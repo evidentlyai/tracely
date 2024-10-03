@@ -70,13 +70,17 @@ The `trace_event` decorator accepts several arguments:
 If you need to create a trace event without using a decorator (e.g., for a specific piece of code), you can do so with the context manager:
 
 ```python
+import uuid
+
 from tracely import init_tracing
 from tracely import create_trace_event
 
 
 init_tracing()
 
-with create_trace_event("external_span") as event:
+session_id = str(uuid.uuid4())
+
+with create_trace_event("external_span", session_id=session_id) as event:
     event.set_attribute("my-attribute", "value")
     # do work
     event.set_result({"data": "data"})
