@@ -29,8 +29,8 @@ from tracely import init_tracing
 
 init_tracing(
     address="https://app.evidently.cloud",           # Trace Collector Address
-    api_key="",                                      # API Key from Evidently Cloud 
-    team_id="a1d08c46-0624-49e3-a9f5-11a13b4a2aa5",  # Team ID from Evidently Cloud 
+    api_key="",                                      # API Key from Evidently Cloud
+    team_id="a1d08c46-0624-49e3-a9f5-11a13b4a2aa5",  # Team ID from Evidently Cloud
     export_name="tracing-dataset",
 )
 ```

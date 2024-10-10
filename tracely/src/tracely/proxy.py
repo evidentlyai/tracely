@@ -10,7 +10,7 @@ class _ProxySpanObject:
     def set_attribute(self, name, value):
         self.span.set_attribute(name, value)
 
-    def set_result(self, value, parse_output:bool = True):
+    def set_result(self, value, parse_output: bool = True):
         set_result(self.span, value, parse_output=parse_output)
 
 
