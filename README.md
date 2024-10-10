@@ -96,3 +96,32 @@ The `event` object has the following methods:
 
 - `set_attribute` - set a custom attribute for the event
 - `set_result` - set a result for the event (only one result can be set per event)
+
+
+## Extending events with additional attributes
+
+If you want to add a new attribute to active event span, you can use `get_current_span()` to get access to current span:
+
+```python
+import uuid
+
+from tracely import init_tracing
+from tracely import create_trace_event
+from tracely import get_current_span
+
+init_tracing()
+
+session_id = str(uuid.uuid4())
+
+with create_trace_event("external_span", session_id=session_id):
+    span = get_current_span()
+    span.set_attribute("my-attribute", "value")
+    # do work
+    span.set_result({"data": "data"})
+
+```
+
+Object from `tracely.get_current_span()` have 2 methods:
+
+- `set_attribute` - add new attribute to active span
+- `set_result` - set a result field to an active span (have no effect in decorated functions with return values)
