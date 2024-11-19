@@ -62,7 +62,7 @@ def _create_tracer_provider(
         )
 
     cloud = EvidentlyCloudClient(_address, _api_key)
-    datasets_response: requests.Response = cloud.request("/api/datasets", "GET")
+    datasets_response: requests.Response = cloud.request("/api/datasets", "GET", query_params={"project_id": _project_id})
     datasets = datasets_response.json()["datasets"]
     _export_id = None
     for dataset in datasets:
