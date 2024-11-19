@@ -40,7 +40,7 @@ All parameters can be set using environment varialbes:
 - `EVIDENTLY_TRACE_COLLECTOR` - trace collector address (default to https://app.evidently.cloud)
 - `EVIDENTLY_TRACE_COLLECTOR_API_KEY` - API Key to access Evidently Cloud for creating dataset and uploading traces
 - `EVIDENTLY_TRACE_COLLECTOR_EXPORT_NAME` - Export name in Evidently Cloud
-- `EVIDENTLY_TRACE_COLLECTOR_project_id` - Project ID from Evidently Cloud to create Export dataset in
+- `EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID` - Project ID from Evidently Cloud to create Export dataset in
 
 #### Decorator
 Once Tracely is initialized, you can decorate your functions with `trace_event` to start collecting traces for a specific function:
