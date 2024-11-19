@@ -12,7 +12,6 @@ from ._env import (
     _TRACE_COLLECTOR_ADDRESS,
     _TRACE_COLLECTOR_API_KEY,
     _TRACE_COLLECTOR_EXPORT_NAME,
-    _TRACE_COLLECTOR_TEAM_ID,
     _TRACE_COLLECTOR_TYPE,
 )
 from .evidently_cloud_client import EvidentlyCloudClient
@@ -24,7 +23,7 @@ def _create_tracer_provider(
     address: Optional[str] = None,
     exporter_type: Optional[str] = None,
     api_key: Optional[str] = None,
-    team_id: Optional[str] = None,
+    project_id: Optional[str] = None,
     export_name: Optional[str] = None,
 ) -> trace.TracerProvider:
     """
@@ -33,7 +32,7 @@ def _create_tracer_provider(
         address: address of collector service
         exporter_type: type of exporter to use "grpc" or "http"
         api_key: authorization api key for Evidently tracing
-        team_id: id of team in Evidently Cloud
+        project_id: id of project in Evidently Cloud
         export_name: string name of exported data, all data with same id would be grouped into single dataset
     """
     global _tracer  # noqa: PLW0603
@@ -54,16 +53,16 @@ def _create_tracer_provider(
             "You need to provide export name with export_name argument"
             " or EVIDENTLY_TRACE_COLLECTOR_EXPORT_NAME env variable"
         )
-    _team_id = team_id or _TRACE_COLLECTOR_TEAM_ID
+    _project_id = project_id or _TRACE_COLLECTOR_PROJECT_ID
     try:
-        uuid.UUID(_team_id)
+        uuid.UUID(_project_id)
     except ValueError:
         raise ValueError(
-            "You need provide valid team ID with team_id argument" "or EVIDENTLY_TRACE_COLLECTOR_TEAM_ID env variable"
+            "You need provide valid project ID with project_id argument" "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
         )
 
     cloud = EvidentlyCloudClient(_address, _api_key)
-    datasets_response: requests.Response = cloud.request("/api/datasets", "GET")
+    datasets_response: requests.Response = cloud.request("/api/datasets", "GET", query_params={"project_id": _project_id, "source_type": ['tracing']})
     datasets = datasets_response.json()["datasets"]
     _export_id = None
     for dataset in datasets:
@@ -74,7 +73,7 @@ def _create_tracer_provider(
         resp: requests.Response = cloud.request(
             "/api/datasets/tracing",
             "POST",
-            query_params={"team_id": _team_id},
+            query_params={"project_id": _project_id},
             body={"name": _export_name},
         )
 
@@ -84,7 +83,7 @@ def _create_tracer_provider(
         resource=Resource.create(
             {
                 "evidently.export_id": _export_id,
-                "evidently.team_id": _team_id,
+                "evidently.project_id": _project_id,
             }
         )
     )
@@ -115,7 +114,7 @@ def init_tracing(
     address: Optional[str] = None,
     exporter_type: Optional[str] = None,
     api_key: Optional[str] = None,
-    team_id: Optional[str] = None,
+    project_id: Optional[str] = None,
     export_name: Optional[str] = None,
     *,
     as_global: bool = True,
@@ -126,14 +125,14 @@ def init_tracing(
         address: address of collector service
         exporter_type: type of exporter to use "grpc" or "http"
         api_key: authorization api key for Evidently tracing
-        team_id: id of team in Evidently Cloud
+        project_id: id of project in Evidently Cloud
         export_name: string name of exported data, all data with same id would be grouped into single dataset
         as_global: indicated when to register provider globally for opentelemetry of use local one
                    Can be useful when you don't want to mix already existing OpenTelemetry tracing with Evidently one,
                    but may require additional configuration
     """
     global _tracer  # noqa: PLW0603
-    provider = _create_tracer_provider(address, exporter_type, api_key, team_id, export_name)
+    provider = _create_tracer_provider(address, exporter_type, api_key, project_id, export_name)
 
     if as_global:
         trace.set_tracer_provider(provider)

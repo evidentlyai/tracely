@@ -30,7 +30,7 @@ from tracely import init_tracing
 init_tracing(
     address="https://app.evidently.cloud",           # Trace Collector Address
     api_key="",                                      # API Key from Evidently Cloud
-    team_id="a1d08c46-0624-49e3-a9f5-11a13b4a2aa5",  # Team ID from Evidently Cloud
+    project_id="a1d08c46-0624-49e3-a9f5-11a13b4a2aa5",  # Project ID from Evidently Cloud
     export_name="tracing-dataset",
 )
 ```
@@ -40,7 +40,7 @@ All parameters can be set using environment varialbes:
 - `EVIDENTLY_TRACE_COLLECTOR` - trace collector address (default to https://app.evidently.cloud)
 - `EVIDENTLY_TRACE_COLLECTOR_API_KEY` - API Key to access Evidently Cloud for creating dataset and uploading traces
 - `EVIDENTLY_TRACE_COLLECTOR_EXPORT_NAME` - Export name in Evidently Cloud
-- `EVIDENTLY_TRACE_COLLECTOR_TEAM_ID` - Team ID from Evidently Cloud to create Export dataset in
+- `EVIDENTLY_TRACE_COLLECTOR_project_id` - Project ID from Evidently Cloud to create Export dataset in
 
 #### Decorator
 Once Tracely is initialized, you can decorate your functions with `trace_event` to start collecting traces for a specific function:
