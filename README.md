@@ -125,3 +125,27 @@ Object from `tracely.get_current_span()` have 2 methods:
 
 - `set_attribute` - add new attribute to active span
 - `set_result` - set a result field to an active span (have no effect in decorated functions with return values)
+
+## Connecting event to existing trace
+Sometimes events are distributed across different systems, but you want to connect them into single trace.
+
+To do so, you can use `tracely.bind_to_trace`:
+
+```python
+import tracely
+
+@tracely.trace_event()
+def process_request(question: str, session_id: str):
+    # do work
+    return "work done"
+
+# trace id is unique 128-bit integer representing single trace
+trace_id = 1234
+
+with tracely.bind_to_trace(trace_id):
+    process_request(...)
+```
+
+In this case instead of creating new TraceID for events this events will be bound to trace with given TraceID.
+
+**Warning**: in this case TraceID management is in user responsibility, if user provide duplicated TraceID all events would be bound to same trace.

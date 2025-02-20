@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from typing import Any, Optional
 
+import opentelemetry.sdk.trace
 
 from . import _tracer_provider
 from .decorators import set_result
@@ -54,3 +55,13 @@ def create_trace_event(name: str, parse_output: bool = True, **params):
                 span.set_attribute(attr, value)
             if obj.result is not None:
                 set_result(span, obj.result, parse_output)
+
+
+@contextmanager
+def bind_to_trace(trace_id: int, parent_span_id: Optional[int] = None):
+    context = _tracer_provider.create_context(trace_id, parent_span_id)
+    token = opentelemetry.sdk.trace.context_api.attach(context)
+    try:
+        yield
+    finally:
+        opentelemetry.sdk.trace.context_api.detach(token)

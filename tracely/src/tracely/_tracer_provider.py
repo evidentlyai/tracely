@@ -2,21 +2,28 @@ import urllib.parse
 import uuid
 from typing import Optional
 
+import opentelemetry.trace
 import requests
 from opentelemetry import trace
+from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
+from opentelemetry.trace import NonRecordingSpan
+from opentelemetry.trace import SpanContext
+from opentelemetry.trace import TraceFlags
 
 from ._env import (
     _TRACE_COLLECTOR_ADDRESS,
     _TRACE_COLLECTOR_API_KEY,
     _TRACE_COLLECTOR_EXPORT_NAME,
     _TRACE_COLLECTOR_TYPE,
+    _TRACE_COLLECTOR_PROJECT_ID,
 )
 from .evidently_cloud_client import EvidentlyCloudClient
 
 _tracer: Optional[trace.Tracer] = None
+_context: Optional[Context] = None
 
 
 def _create_tracer_provider(
@@ -44,8 +51,6 @@ def _create_tracer_provider(
             "argument address or EVIDENTLY_TRACE_COLLECTOR env variable"
         )
     _exporter_type = exporter_type or _TRACE_COLLECTOR_TYPE
-    if _exporter_type != "http":
-        raise ValueError("Only 'http' exporter_type is supported")
     _api_key = api_key or _TRACE_COLLECTOR_API_KEY
     _export_name = export_name or _TRACE_COLLECTOR_EXPORT_NAME
     if len(_export_name) == 0:
@@ -61,23 +66,31 @@ def _create_tracer_provider(
             "You need provide valid project ID with project_id argument" "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
         )
 
-    cloud = EvidentlyCloudClient(_address, _api_key)
-    datasets_response: requests.Response = cloud.request("/api/datasets", "GET", query_params={"project_id": _project_id, "source_type": ['tracing']})
-    datasets = datasets_response.json()["datasets"]
-    _export_id = None
-    for dataset in datasets:
-        if dataset["name"] == _export_name:
-            _export_id = dataset["id"]
-            break
-    if _export_id is None:
-        resp: requests.Response = cloud.request(
-            "/api/datasets/tracing",
-            "POST",
-            query_params={"project_id": _project_id},
-            body={"name": _export_name},
+    if _exporter_type != "console":
+        cloud = EvidentlyCloudClient(_address, _api_key)
+        datasets_response: requests.Response = cloud.request(
+            "/api/datasets",
+            "GET",
+            query_params={"project_id": _project_id, "source_type": ['tracing']},
         )
+        datasets = datasets_response.json()["datasets"]
+        _export_id = None
+        for dataset in datasets:
+            if dataset["name"] == _export_name:
+                _export_id = dataset["id"]
+                break
+        if _export_id is None:
+            resp: requests.Response = cloud.request(
+                "/api/datasets/tracing",
+                "POST",
+                query_params={"project_id": _project_id},
+                body={"name": _export_name},
+            )
 
-        _export_id = resp.json()["dataset_id"]
+            _export_id = resp.json()["dataset_id"]
+    else:
+        _export_id = "<not_set>"
+        _project_id = "<not_set>"
 
     tracer_provider = TracerProvider(
         resource=Resource.create(
@@ -103,6 +116,9 @@ def _create_tracer_provider(
             urllib.parse.urljoin(_address, "/api/v1/traces"),
             session=cloud.session(),
         )
+    elif _exporter_type == "console":
+        from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+        exporter = ConsoleSpanExporter()
     else:
         raise ValueError("Unexpected value of exporter type")
     tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
@@ -146,3 +162,17 @@ def get_tracer() -> trace.Tracer:
     if _tracer is None:
         raise ValueError("TracerProvider not initialized, use init_tracer()")
     return _tracer
+
+
+def create_context(trace_id: int, parent_span_id: Optional[int]):
+    if parent_span_id is None:
+        generator = opentelemetry.sdk.trace.RandomIdGenerator()
+        parent_span_id = generator.generate_span_id()
+    span_context = SpanContext(
+        trace_id=trace_id,
+        span_id=parent_span_id,
+        is_remote=True,
+        trace_flags=TraceFlags(0x01)
+    )
+    context = opentelemetry.trace.set_span_in_context(NonRecordingSpan(span_context))
+    return context

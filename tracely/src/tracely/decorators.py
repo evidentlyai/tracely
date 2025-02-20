@@ -1,6 +1,7 @@
 from functools import wraps
 from typing import Any, Callable, List, Optional
 
+from opentelemetry.trace import SpanContext
 from opentelemetry.trace import StatusCode
 
 from . import _tracer_provider
@@ -31,7 +32,6 @@ def trace_event(
             import inspect
 
             _tracer = _tracer_provider.get_tracer()
-
             sign = inspect.signature(f)
             bind = sign.bind(*args, **kwargs)
             with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
