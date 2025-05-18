@@ -41,7 +41,16 @@ def trace_event(
                 if ignore_args is not None:
                     final_args = [item for item in final_args if item not in ignore_args]
                 for tracked in final_args:
-                    span.set_attribute(tracked, bind.arguments[tracked])
+                    if tracked in bind.arguments:
+                        value = bind.arguments[tracked]
+                    elif (
+                        tracked in bind.signature.parameters
+                        and bind.signature.parameters[tracked].default != inspect.Parameter.empty
+                    ):
+                        value = bind.signature.parameters[tracked].default
+                    else:
+                        value = "<unknown>"
+                    span.set_attribute(tracked, value)
                 try:
                     result = f(*args, **kwargs)
                     if result is not None and track_output:
