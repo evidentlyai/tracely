@@ -1,6 +1,7 @@
 import urllib.parse
 import uuid
 from typing import Optional
+from typing import Union
 
 import opentelemetry.trace
 import requests
@@ -14,6 +15,7 @@ from opentelemetry.trace import SpanContext
 from opentelemetry.trace import TraceFlags
 
 from ._env import (
+    _EVIDENTLY_API_KEY,
     _TRACE_COLLECTOR_ADDRESS,
     _TRACE_COLLECTOR_API_KEY,
     _TRACE_COLLECTOR_EXPORT_NAME,
@@ -30,7 +32,7 @@ def _create_tracer_provider(
     address: Optional[str] = None,
     exporter_type: Optional[str] = None,
     api_key: Optional[str] = None,
-    project_id: Optional[str] = None,
+    project_id: Optional[Union[str, uuid.UUID]] = None,
     export_name: Optional[str] = None,
 ) -> trace.TracerProvider:
     """
@@ -51,7 +53,7 @@ def _create_tracer_provider(
             "argument address or EVIDENTLY_TRACE_COLLECTOR env variable"
         )
     _exporter_type = exporter_type or _TRACE_COLLECTOR_TYPE
-    _api_key = api_key or _TRACE_COLLECTOR_API_KEY
+    _api_key = api_key or _TRACE_COLLECTOR_API_KEY or _EVIDENTLY_API_KEY
     _export_name = export_name or _TRACE_COLLECTOR_EXPORT_NAME
     if len(_export_name) == 0:
         raise ValueError(
@@ -60,7 +62,14 @@ def _create_tracer_provider(
         )
     _project_id = project_id or _TRACE_COLLECTOR_PROJECT_ID
     try:
-        uuid.UUID(_project_id)
+        if project_id is None and _TRACE_COLLECTOR_PROJECT_ID != "":
+            _project_id = str(uuid.UUID(_TRACE_COLLECTOR_PROJECT_ID))
+        elif isinstance(project_id, uuid.UUID):
+            _project_id = str(project_id)
+        elif isinstance(project_id, str):
+            _project_id = str(uuid.UUID(_project_id))
+        else:
+            raise ValueError()
     except ValueError:
         raise ValueError(
             "You need provide valid project ID with project_id argument" "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
@@ -130,7 +139,7 @@ def init_tracing(
     address: Optional[str] = None,
     exporter_type: Optional[str] = None,
     api_key: Optional[str] = None,
-    project_id: Optional[str] = None,
+    project_id: Optional[Union[str, uuid.UUID]] = None,
     export_name: Optional[str] = None,
     *,
     as_global: bool = True,
