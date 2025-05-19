@@ -1,10 +1,36 @@
 from functools import wraps
+from inspect import BoundArguments, iscoroutinefunction, Parameter, Signature
 from typing import Any, Callable, List, Optional
 
-from opentelemetry.trace import SpanContext
+from opentelemetry.trace import Span
 from opentelemetry.trace import StatusCode
 
 from . import _tracer_provider
+
+
+def _fill_span_from_signature(
+    track_args: Optional[List[str]],
+    ignore_args: Optional[List[str]],
+    sign: Signature,
+    bind: BoundArguments,
+    span: Span,
+):
+    final_args = track_args
+    if track_args is None:
+        final_args = list(sign.parameters.keys())
+    if ignore_args is not None:
+        final_args = [item for item in final_args if item not in ignore_args]
+    for tracked in final_args:
+        if tracked in bind.arguments:
+            value = bind.arguments[tracked]
+        elif (
+            tracked in sign.parameters
+            and sign.parameters[tracked].default != Parameter.empty
+        ):
+            value = sign.parameters[tracked].default
+        else:
+            value = "<unknown>"
+        span.set_attribute(tracked, value)
 
 
 def trace_event(
@@ -27,42 +53,50 @@ def trace_event(
     """
 
     def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(f)
-        def func(*args, **kwargs):
-            import inspect
+        if iscoroutinefunction(f):
+            @wraps(f)
+            async def func(*args, **kwargs):
+                import inspect
 
-            _tracer = _tracer_provider.get_tracer()
-            sign = inspect.signature(f)
-            bind = sign.bind(*args, **kwargs)
-            with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
-                final_args = track_args
-                if track_args is None:
-                    final_args = list(sign.parameters.keys())
-                if ignore_args is not None:
-                    final_args = [item for item in final_args if item not in ignore_args]
-                for tracked in final_args:
-                    if tracked in bind.arguments:
-                        value = bind.arguments[tracked]
-                    elif (
-                        tracked in bind.signature.parameters
-                        and bind.signature.parameters[tracked].default != inspect.Parameter.empty
-                    ):
-                        value = bind.signature.parameters[tracked].default
-                    else:
-                        value = "<unknown>"
-                    span.set_attribute(tracked, value)
-                try:
-                    result = f(*args, **kwargs)
-                    if result is not None and track_output:
-                        set_result(span, result, parse_output)
-                    span.set_status(StatusCode.OK)
-                except Exception as e:
-                    span.set_attribute("exception", str(e))
-                    span.set_status(StatusCode.ERROR)
-                    raise
-            return result
+                _tracer = _tracer_provider.get_tracer()
+                sign = inspect.signature(f)
+                bind = sign.bind(*args, **kwargs)
+                with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
+                    _fill_span_from_signature(track_args, ignore_args, bind.signature, bind, span)
+                    try:
+                        result = await f(*args, **kwargs)
+                        if result is not None and track_output:
+                            set_result(span, result, parse_output)
+                        span.set_status(StatusCode.OK)
+                    except Exception as e:
+                        span.set_attribute("exception", str(e))
+                        span.set_status(StatusCode.ERROR)
+                        raise
+                return result
 
-        return func
+            return func
+        else:
+            @wraps(f)
+            def func(*args, **kwargs):
+                import inspect
+
+                _tracer = _tracer_provider.get_tracer()
+                sign = inspect.signature(f)
+                bind = sign.bind(*args, **kwargs)
+                with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
+                    _fill_span_from_signature(track_args, ignore_args, bind.signature, bind, span)
+                    try:
+                        result = f(*args, **kwargs)
+                        if result is not None and track_output:
+                            set_result(span, result, parse_output)
+                        span.set_status(StatusCode.OK)
+                    except Exception as e:
+                        span.set_attribute("exception", str(e))
+                        span.set_status(StatusCode.ERROR)
+                        raise
+                return result
+
+            return func
 
     return wrapper
 
