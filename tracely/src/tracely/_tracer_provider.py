@@ -24,8 +24,20 @@ from ._env import (
 )
 from .evidently_cloud_client import EvidentlyCloudClient
 
+
+class DataContext:
+    export_id: Union[str, uuid.UUID]
+    project_id: Union[str, uuid.UUID]
+
+    def __init__(self, export_id: str, project_id: str):
+        self.export_id = export_id
+        self.project_id = project_id
+
+
+
 _tracer: Optional[trace.Tracer] = None
 _context: Optional[Context] = None
+_data_context: DataContext = DataContext("<not_set>", "<not_set>")
 
 
 def _create_tracer_provider(
@@ -97,15 +109,17 @@ def _create_tracer_provider(
             )
 
             _export_id = resp.json()["dataset_id"]
+            _data_context.export_id = uuid.UUID(_export_id)
+            _data_context.project_id = uuid.UUID(_project_id)
     else:
-        _export_id = "<not_set>"
-        _project_id = "<not_set>"
+        _data_context.export_id = "<not_set>"
+        _data_context.project_id = "<not_set>"
 
     tracer_provider = TracerProvider(
         resource=Resource.create(
             {
-                "evidently.export_id": _export_id,
-                "evidently.project_id": _project_id,
+                "evidently.export_id": str(_data_context.export_id),
+                "evidently.project_id": str(_data_context.export_id),
             }
         )
     )
@@ -185,3 +199,9 @@ def create_context(trace_id: int, parent_span_id: Optional[int]):
     )
     context = opentelemetry.trace.set_span_in_context(NonRecordingSpan(span_context))
     return context
+
+def get_info():
+    return {
+        "export_id": _data_context.export_id,
+        "project_id": _data_context.project_id,
+    }
