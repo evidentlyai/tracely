@@ -1,5 +1,7 @@
+import dataclasses
 import urllib.parse
 import uuid
+from typing import Dict
 from typing import Optional
 from typing import Union
 
@@ -25,14 +27,33 @@ from ._env import (
 from .evidently_cloud_client import EvidentlyCloudClient
 
 
+@dataclasses.dataclass
+class UsageDetails:
+    cost_per_token: Dict[str, float]
+
+
 class DataContext:
     export_id: Union[str, uuid.UUID]
     project_id: Union[str, uuid.UUID]
+    default_usage_details: Optional[UsageDetails]
+    usage_details_by_model_id: Optional[Dict[str, UsageDetails]]
 
-    def __init__(self, export_id: str, project_id: str):
+    def __init__(
+        self,
+        export_id: str,
+        project_id: str,
+        default_usage_details: Optional[UsageDetails] = None,
+        usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
+    ):
         self.export_id = export_id
         self.project_id = project_id
+        self.default_usage_details = default_usage_details
+        self.usage_details_by_model_id = usage_details_by_model_id
 
+    def get_model_usage_details(self, model_id: str) -> Optional[UsageDetails]:
+        if self.usage_details_by_model_id is None:
+            return self.default_usage_details
+        return self.usage_details_by_model_id.get(model_id, self.default_usage_details)
 
 
 _tracer: Optional[trace.Tracer] = None
@@ -46,6 +67,8 @@ def _create_tracer_provider(
     api_key: Optional[str] = None,
     project_id: Optional[Union[str, uuid.UUID]] = None,
     export_name: Optional[str] = None,
+    default_usage_details: Optional[UsageDetails] = None,
+    usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
 ) -> trace.TracerProvider:
     """
     Creates Evidently telemetry tracer provider which would be used for sending traces.
@@ -87,7 +110,7 @@ def _create_tracer_provider(
             "You need provide valid project ID with project_id argument" "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
         )
 
-    if _exporter_type != "console":
+    if _exporter_type not in ("console", "inmemory"):
         cloud = EvidentlyCloudClient(_address, _api_key)
         datasets_response: requests.Response = cloud.request(
             "/api/datasets",
@@ -110,10 +133,11 @@ def _create_tracer_provider(
 
             _export_id = resp.json()["dataset_id"]
             _data_context.export_id = uuid.UUID(_export_id)
-            _data_context.project_id = uuid.UUID(_project_id)
     else:
         _data_context.export_id = "<not_set>"
-        _data_context.project_id = "<not_set>"
+    _data_context.project_id = uuid.UUID(_project_id)
+    _data_context.default_usage_details = default_usage_details
+    _data_context.usage_details_by_model_id = usage_details_by_model_id
 
     tracer_provider = TracerProvider(
         resource=Resource.create(
@@ -142,6 +166,9 @@ def _create_tracer_provider(
     elif _exporter_type == "console":
         from opentelemetry.sdk.trace.export import ConsoleSpanExporter
         exporter = ConsoleSpanExporter()
+    elif _exporter_type == "memory":
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+        exporter = InMemorySpanExporter()
     else:
         raise ValueError("Unexpected value of exporter type")
     tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
@@ -157,6 +184,8 @@ def init_tracing(
     export_name: Optional[str] = None,
     *,
     as_global: bool = True,
+    default_usage_details: Optional[UsageDetails] = None,
+    usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
 ) -> trace.TracerProvider:
     """
     Initialize Evidently tracing
@@ -171,7 +200,15 @@ def init_tracing(
                    but may require additional configuration
     """
     global _tracer  # noqa: PLW0603
-    provider = _create_tracer_provider(address, exporter_type, api_key, project_id, export_name)
+    provider = _create_tracer_provider(
+        address,
+        exporter_type,
+        api_key,
+        project_id,
+        export_name,
+        default_usage_details,
+        usage_details_by_model_id,
+    )
 
     if as_global:
         trace.set_tracer_provider(provider)

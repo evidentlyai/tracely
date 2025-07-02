@@ -1,10 +1,11 @@
 from contextlib import contextmanager
 from typing import Any, Optional
+from typing import Generator
+from typing import Union
 
 import opentelemetry.sdk.trace
 
 from . import _tracer_provider
-from .decorators import set_result
 
 
 class _SpanObject:
@@ -31,7 +32,7 @@ class _SpanObject:
 
 
 @contextmanager
-def create_trace_event(name: str, parse_output: bool = True, **params):
+def create_trace_event(name: str, parse_output: bool = True, **params) -> Generator[_SpanObject, None, None]:
     """
     Create a span with given name.
 
@@ -65,3 +66,21 @@ def bind_to_trace(trace_id: int, parent_span_id: Optional[int] = None):
         yield
     finally:
         opentelemetry.sdk.trace.context_api.detach(token)
+
+
+def set_result(span, result, parse_output: bool):
+    if parse_output and isinstance(result, dict):
+        value: Union[str, int, float]
+        for k, v in result.items():
+            if isinstance(v, (int, float)):
+                value = v
+            else:
+                value = str(v)
+            span.set_attribute(f"result.{k}", value)
+    elif parse_output and isinstance(result, (tuple, list)):
+        for idx, item in enumerate(result):
+            span.set_attribute(f"result.{idx}", str(item))
+    elif isinstance(result, (int, float)):
+        span.set_attribute("result", result)
+    else:
+        span.set_attribute("result", str(result))
