@@ -21,7 +21,9 @@ jobs:
           python-version: "3.9"
           cache: "poetry"
           cache-dependency-path: poetry.lock
-      - name: Install
+      - name: Install poetry
+        run: pip install poetry
+      - name: Install tracely
         run: |
           poetry install
         shell: bash
