@@ -18,7 +18,7 @@ def _fill_span_from_signature(
     span: _SpanObject,
 ):
     final_args = track_args
-    if track_args is None:
+    if final_args is None:
         final_args = list(sign.parameters.keys())
     if ignore_args is not None:
         final_args = [item for item in final_args if item not in ignore_args]

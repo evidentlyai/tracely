@@ -102,7 +102,7 @@ def _create_tracer_provider(
         elif isinstance(project_id, uuid.UUID):
             _project_id = str(project_id)
         elif isinstance(project_id, str):
-            _project_id = str(uuid.UUID(_project_id))
+            _project_id = str(uuid.UUID(_project_id)) if isinstance(_project_id, str) else str(_project_id)
         else:
             raise ValueError()
     except ValueError:
