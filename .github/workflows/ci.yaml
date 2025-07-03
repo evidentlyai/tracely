@@ -9,6 +9,7 @@ on:
     types:
       - opened
       - ready_for_review
+      - synchronize
       - reopened
 
 jobs:
@@ -16,13 +17,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
           cache: "poetry"
           cache-dependency-path: poetry.lock
-      - name: Install poetry
-        run: pip install poetry
       - name: Install tracely
         run: poetry install
         shell: bash
