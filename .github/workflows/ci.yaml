@@ -25,7 +25,7 @@ jobs:
           cache: "poetry"
           cache-dependency-path: poetry.lock
       - name: Install tracely
-        run: poetry install
+        run: poetry install --with dev
         shell: bash
       - name: pre-commit check
         run: |
