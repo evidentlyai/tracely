@@ -15,12 +15,14 @@ from tracely import UsageDetails
 def trace_func_with_output():
     return 100
 
+
 @trace_event(track_output=True, parse_output=True)
 def trace_func_with_output_struct():
     return {
         "f1": "r1",
         "f2": 100,
     }
+
 
 @trace_event(track_output=True, parse_output=True)
 def trace_func_with_tokens():
@@ -106,4 +108,4 @@ def test_trace_func_with_tokens(exporter):
     assert span.attributes["tokens.input"] == 100
     assert span.attributes["tokens.output"] == 200
     assert span.attributes["cost.input"] == 0.1
-    assert span.attributes["cost.output"] == 1.
+    assert span.attributes["cost.output"] == 1.0

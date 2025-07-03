@@ -107,7 +107,8 @@ def _create_tracer_provider(
             raise ValueError()
     except ValueError:
         raise ValueError(
-            "You need provide valid project ID with project_id argument" "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
+            "You need provide valid project ID with project_id argument"
+            "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
         )
 
     if _exporter_type not in ("console", "inmemory"):
@@ -115,7 +116,7 @@ def _create_tracer_provider(
         datasets_response: requests.Response = cloud.request(
             "/api/datasets",
             "GET",
-            query_params={"project_id": _project_id, "source_type": ['tracing']},
+            query_params={"project_id": _project_id, "source_type": ["tracing"]},
         )
         datasets = datasets_response.json()["datasets"]
         _export_id = None
@@ -165,9 +166,11 @@ def _create_tracer_provider(
         )
     elif _exporter_type == "console":
         from opentelemetry.sdk.trace.export import ConsoleSpanExporter
+
         exporter = ConsoleSpanExporter()
     elif _exporter_type == "memory":
         from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
         exporter = InMemorySpanExporter()
     else:
         raise ValueError("Unexpected value of exporter type")
@@ -228,14 +231,10 @@ def create_context(trace_id: int, parent_span_id: Optional[int]):
     if parent_span_id is None:
         generator = opentelemetry.sdk.trace.RandomIdGenerator()
         parent_span_id = generator.generate_span_id()
-    span_context = SpanContext(
-        trace_id=trace_id,
-        span_id=parent_span_id,
-        is_remote=True,
-        trace_flags=TraceFlags(0x01)
-    )
+    span_context = SpanContext(trace_id=trace_id, span_id=parent_span_id, is_remote=True, trace_flags=TraceFlags(0x01))
     context = opentelemetry.trace.set_span_in_context(NonRecordingSpan(span_context))
     return context
+
 
 def get_info():
     return {

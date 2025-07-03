@@ -35,6 +35,5 @@ class _ProxySpanObject:
                     self.set_attribute(f"cost.{k}", cost * v)
 
 
-
 def get_current_span():
     return _ProxySpanObject()

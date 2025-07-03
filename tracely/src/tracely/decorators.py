@@ -25,10 +25,7 @@ def _fill_span_from_signature(
     for tracked in final_args:
         if tracked in bind.arguments:
             value = bind.arguments[tracked]
-        elif (
-            tracked in sign.parameters
-            and sign.parameters[tracked].default != Parameter.empty
-        ):
+        elif tracked in sign.parameters and sign.parameters[tracked].default != Parameter.empty:
             value = sign.parameters[tracked].default
         else:
             value = "<unknown>"
@@ -56,6 +53,7 @@ def trace_event(
 
     def wrapper(f: Callable[..., Any]) -> Callable[..., Any]:
         if iscoroutinefunction(f):
+
             @wraps(f)
             async def func(*args, **kwargs):
                 import inspect
@@ -77,6 +75,7 @@ def trace_event(
 
             return func
         else:
+
             @wraps(f)
             def func(*args, **kwargs):
                 import inspect
