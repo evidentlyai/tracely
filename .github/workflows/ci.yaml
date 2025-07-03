@@ -24,8 +24,7 @@ jobs:
       - name: Install poetry
         run: pip install poetry
       - name: Install tracely
-        run: |
-          poetry install
+        run: poetry install
         shell: bash
       - name: pre-commit check
         run: |
