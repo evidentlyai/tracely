@@ -63,6 +63,18 @@ def test_spans(exporter):
     assert span.attributes["result"] == 42
 
 
+def test_spans_with_context_params(exporter):
+    with tracely.create_trace_event("test_name", p1=43) as span:
+        span.set_result(42)
+
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    span = spans[0]
+    assert span.name == "test_name"
+    assert span.attributes["p1"] == 43
+    assert span.attributes["result"] == 42
+
+
 def test_trace_func_with_output(exporter):
     result = trace_func_with_output()
 
