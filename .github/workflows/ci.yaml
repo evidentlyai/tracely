@@ -32,7 +32,7 @@ jobs:
         shell: bash
       - name: Mypy typing
         run: |
-          mypy tracely/
+          poetry run mypy tracely/
       - name: Tests
         run: |
-          pytest tracely/tests
+          poetry run pytest tracely/tests
