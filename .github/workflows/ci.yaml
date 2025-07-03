@@ -24,12 +24,12 @@ jobs:
           python-version: "3.9"
           cache: "poetry"
           cache-dependency-path: poetry.lock
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: '--all-files'
       - name: Install tracely
         run: poetry install --with dev
         shell: bash
-      - name: pre-commit check
-        run: |
-          pre-commit run --all-files
       - name: Mypy typing
         run: |
           mypy tracely/
