@@ -6,8 +6,8 @@ from opentelemetry.trace import StatusCode
 
 import tracely
 from . import _tracer_provider
-from .context import _SpanObject
-from .context import set_result
+from .proxy import set_result
+from .proxy import _ProxySpanObject
 
 
 def _fill_span_from_signature(
@@ -15,7 +15,7 @@ def _fill_span_from_signature(
     ignore_args: Optional[List[str]],
     sign: Signature,
     bind: BoundArguments,
-    span: _SpanObject,
+    span: _ProxySpanObject,
 ):
     final_args = track_args
     if final_args is None:

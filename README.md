@@ -1,3 +1,5 @@
+from tracely import UsageDetails
+
 # Tracely
 
 Tracely is a tool designed for tracing and monitoring AI model interactions, enabling you to gain real-time insights into your models' performance. This repository offers a straightforward interface for integrating tracing into your Python applications.
@@ -103,6 +105,7 @@ The `event` object has the following methods:
 If you want to add a new attribute to active event span, you can use `get_current_span()` to get access to current span:
 
 ```python
+import tracely.proxy
 import uuid
 
 from tracely import init_tracing
@@ -117,7 +120,7 @@ with create_trace_event("external_span", session_id=session_id):
     span = get_current_span()
     span.set_attribute("my-attribute", "value")
     # do work
-    span.set_result({"data": "data"})
+    tracely.proxy.set_result({"data": "data"})
 
 ```
 
@@ -125,6 +128,74 @@ Object from `tracely.get_current_span()` have 2 methods:
 
 - `set_attribute` - add new attribute to active span
 - `set_result` - set a result field to an active span (have no effect in decorated functions with return values)
+
+## Update traces with Token usage and Cost information
+
+When using tracely to trace LLM calls you can provide tokens usage and cost information into traces:
+
+### Configuration
+
+There is no additional configuration required to provide tokens usage information.
+
+For Cost information you can configure default cost per token:
+
+```python
+from tracely import init_tracing, UsageDetails
+
+init_tracing(
+    default_usage_details=UsageDetails(cost_per_token={
+        "input": 0.0005,  # usd per 1 'input' token used
+        "output": 0.0005,  # usd per 1 'input' token used
+    })
+)
+
+```
+
+### Updating trace with token usage and cost
+
+To add token usage into trace on single span.
+
+When using `tracely.create_trace_event(...) as span`:
+```python
+from tracely import create_trace_event
+
+
+with create_trace_event("example_trace") as span:
+    span.update_usage(
+        tokens={
+            "input": 100,
+            "output": 200,
+        },
+        costs={
+            "input": 0.1,
+            "output": 0.2,
+        }
+    )
+```
+
+When using `@trace_event()` decorator:
+
+```python
+from tracely import trace_event, get_current_span
+
+@trace_event()
+def my_llm_call_function(input):
+    # do LLM call and collect data
+    span = get_current_span()
+    span.update_usage(
+        tokens={
+            "input": 100,
+            "output": 200,
+        }
+    )
+```
+
+### Behavior of `update_usage()` method
+
+Method `span.update_usage(tokens, costs)`:
+- `tokens` (`Dict[str, int]`) - token usage information
+- `costs` (optional, `Dict[str, float]`) - cost per token type, optional, if not provided, but `cost_per_token` set in `init_tracing` it would be automatically calculated
+
 
 ## Connecting event to existing trace
 Sometimes events are distributed across different systems, but you want to connect them into single trace.
