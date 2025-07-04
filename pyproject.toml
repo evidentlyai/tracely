@@ -22,6 +22,7 @@ ruff = "^0.5.4"
 mypy = "^1.16.1"
 pytest = "^8.4.1"
 types-requests = "^2.32.4.20250611"
+openai = "1.93.0"
 
 [build-system]
 requires = ["poetry-core"]
