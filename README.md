@@ -192,10 +192,12 @@ def my_llm_call_function(input):
 
 ### Behavior of `update_usage()` method
 
-Method `span.update_usage(tokens, costs)`:
+Method `span.update_usage(usage, tokens, costs)`:
+- `usage` (optional, `openai.types.responses.ResponseUsage`) - OpenAI Response Usage object to infer usage from.
 - `tokens` (`Dict[str, int]`) - token usage information
 - `costs` (optional, `Dict[str, float]`) - cost per token type, optional, if not provided, but `cost_per_token` set in `init_tracing` it would be automatically calculated
 
+**ATTENTION**: you can only use `usage` or `tokens + costs` when use `update_usage(...)` method.
 
 ## Connecting event to existing trace
 Sometimes events are distributed across different systems, but you want to connect them into single trace.
