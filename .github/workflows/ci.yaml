@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - ready_for_review
+      - synchronize
+      - reopened
+
+jobs:
+  checks:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "poetry"
+          cache-dependency-path: poetry.lock
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: '--all-files'
+      - name: Install tracely
+        run: poetry install --with dev
+        shell: bash
+      - name: Mypy typing
+        run: |
+          poetry run mypy tracely/
+      - name: Tests
+        run: |
+          poetry run pytest tracely/tests

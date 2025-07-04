@@ -1,3 +1,4 @@
+from ._tracer_provider import UsageDetails
 from ._tracer_provider import init_tracing
 from ._tracer_provider import get_info
 from .decorators import trace_event
@@ -8,6 +9,7 @@ from ._version import __version__
 
 
 __all__ = [
+    "UsageDetails",
     "create_trace_event",
     "get_current_span",
     "get_info",
