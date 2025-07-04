@@ -28,7 +28,7 @@ class _ProxySpanObject:
         usage: Optional["ResponseUsage"] = None,
         *,
         tokens: Optional[Dict[str, int]] = None,
-        costs: Optional[Dict[str, int]] = None,
+        costs: Optional[Dict[str, float]] = None,
     ):
         if usage is not None:
             if tokens is not None or costs is not None:
