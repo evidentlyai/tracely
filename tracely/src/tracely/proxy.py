@@ -1,9 +1,13 @@
+import typing
 from typing import Dict
 from typing import Optional
 from typing import Union
 
 import opentelemetry.trace
 from tracely._tracer_provider import _data_context
+
+if typing.TYPE_CHECKING:
+    from openai.types.responses import ResponseUsage
 
 
 class _ProxySpanObject:
@@ -21,6 +25,23 @@ class _ProxySpanObject:
 
     def update_usage(
         self,
+        usage: Optional["ResponseUsage"] = None,
+        *,
+        tokens: Optional[Dict[str, int]] = None,
+        costs: Optional[Dict[str, int]] = None,
+    ):
+        if usage is not None:
+            if tokens is not None or costs is not None:
+                raise ValueError("Cannot specify both usage and tokens+costs, use only one instead")
+            self._update_usage_openai(usage)
+        else:
+            if tokens is None:
+                raise ValueError("Must specify either tokens or usage")
+            self._update_usage(tokens=tokens, costs=costs)
+
+    def _update_usage(
+        self,
+        *,
         tokens: Dict[str, int],
         costs: Optional[Dict[str, float]] = None,
     ):
@@ -35,6 +56,16 @@ class _ProxySpanObject:
                 cost = usage_details.cost_per_token.get(k)
                 if cost:
                     self.set_attribute(f"cost.{k}", cost * v)
+
+    def _update_usage_openai(self, usage: "ResponseUsage"):
+        self._update_usage(
+            tokens={
+                "total_input": usage.input_tokens,
+                "input": usage.input_tokens - usage.input_tokens_details.cached_tokens,
+                "cached_input": usage.input_tokens_details.cached_tokens,
+                "output": usage.output_tokens,
+            },
+        )
 
 
 def get_current_span():
