@@ -23,6 +23,12 @@ class _ProxySpanObject:
     def set_result(self, value, parse_output: bool = True):
         set_result(self.span, value, parse_output=parse_output)
 
+    def set_session(self, value: str):
+        self.set_attribute("session_id", value)
+
+    def set_user(self, value: str):
+        self.set_attribute("user_id", value)
+
     def update_usage(
         self,
         usage: Optional["ResponseUsage"] = None,
