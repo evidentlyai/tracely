@@ -199,6 +199,22 @@ Method `span.update_usage(usage, tokens, costs)`:
 
 **ATTENTION**: you can only use `usage` or `tokens + costs` when use `update_usage(...)` method.
 
+### Updating trace with `session_id` or `user_id`
+
+You can add `session_id` or `user_id` to trace event by using special `span` methods.
+
+```python
+from tracely import trace_event, get_current_span
+
+@trace_event()
+def my_llm_call_function(input):
+    # do LLM call and collect data
+    span = get_current_span()
+
+    span.set_session("session_id")
+    span.set_user("user_id")
+```
+
 ## Connecting event to existing trace
 Sometimes events are distributed across different systems, but you want to connect them into single trace.
 
