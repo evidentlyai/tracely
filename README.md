@@ -4,6 +4,8 @@ from tracely import UsageDetails
 
 Tracely is a tool designed for tracing and monitoring AI model interactions, enabling you to gain real-time insights into your models' performance. This repository offers a straightforward interface for integrating tracing into your Python applications.
 
+📖 **Full documentation**: [Tracely Overview](https://docs.evidentlyai.com/docs/platform/tracing_overview)
+
 ## Getting Started
 
 ### Prerequisites
@@ -24,7 +26,7 @@ pip install tracely
 
 #### Init
 
-To send your traces to Evidently you need to initialize tracely:
+To send your traces to Evidently Cloud you need to initialize tracely:
 
 ```python
 from tracely import init_tracing
@@ -37,7 +39,7 @@ init_tracing(
 )
 ```
 
-All parameters can be set using environment varialbes:
+All parameters can be set using environment variables:
 
 - `EVIDENTLY_TRACE_COLLECTOR` - trace collector address (default to https://app.evidently.cloud)
 - `EVIDENTLY_TRACE_COLLECTOR_API_KEY` - API Key to access Evidently Cloud for creating dataset and uploading traces
@@ -102,7 +104,7 @@ The `event` object has the following methods:
 
 ## Extending events with additional attributes
 
-If you want to add a new attribute to active event span, you can use `get_current_span()` to get access to current span:
+If you want to add a new attribute to the active event span, you can use `get_current_span()` to get access to the current span:
 
 ```python
 import tracely.proxy
@@ -126,8 +128,8 @@ with create_trace_event("external_span", session_id=session_id):
 
 Object from `tracely.get_current_span()` have 2 methods:
 
-- `set_attribute` - add new attribute to active span
-- `set_result` - set a result field to an active span (have no effect in decorated functions with return values)
+- `set_attribute` - add a new attribute to the active span
+- `set_result` - set a result field to an active span (has no effect in decorated functions with return values)
 
 ## Update traces with Token usage and Cost information
 
@@ -216,7 +218,7 @@ def my_llm_call_function(input):
 ```
 
 ## Connecting event to existing trace
-Sometimes events are distributed across different systems, but you want to connect them into single trace.
+Sometimes events are distributed across different systems, but you want to connect them into a single trace.
 
 To do so, you can use `tracely.bind_to_trace`:
 
@@ -228,13 +230,14 @@ def process_request(question: str, session_id: str):
     # do work
     return "work done"
 
-# trace id is unique 128-bit integer representing single trace
+# trace id is a unique 128-bit integer representing a single trace
 trace_id = 1234
 
 with tracely.bind_to_trace(trace_id):
     process_request(...)
 ```
 
-In this case instead of creating new TraceID for events this events will be bound to trace with given TraceID.
+In this case, instead of creating a new TraceID for events, these events will be bound to a trace with a given TraceID.
 
-**Warning**: in this case TraceID management is in user responsibility, if user provide duplicated TraceID all events would be bound to same trace.
+**Warning**: in this case TraceID management is the user's responsibility. If a user provide duplicated TraceID, all events would be bound to same trace.
+
