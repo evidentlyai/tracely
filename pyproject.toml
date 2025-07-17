@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tracely"
-version = "0.2.3"
+version = "0.2.6"
 description = "Tracing tools"
 authors = ["Emeli Dral <emeli.dral@gmail.com>"]
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{include = "tracely", from = "tracely/src"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.9"
 opentelemetry-api = ">=1.25.0"
 opentelemetry-sdk = ">=1.25.0"
 opentelemetry-proto = ">=1.25.0"
@@ -19,6 +19,10 @@ requests = ">=2.32.0"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3.3"
 ruff = "^0.5.4"
+mypy = "^1.16.1"
+pytest = "^8.4.1"
+types-requests = "^2.32.4.20250611"
+openai = "1.93.0"
 
 [build-system]
 requires = ["poetry-core"]
