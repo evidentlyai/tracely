@@ -53,6 +53,22 @@ def multiple_calls_openai(input: str):
     return second_answer
 
 
+@trace_event()
+def call_with_user_id_param(input: str, user_id: str):
+    answer = call_openai_with_helper(input)
+    second_answer = call_openai_with_helper("Explain better this answer: " + answer)
+    return second_answer
+
+
+@trace_event()
+def call_with_user_id_explicit(input: str):
+    span = get_current_span()
+    span.setuser("user_id")
+    answer = call_openai_with_helper(input)
+    second_answer = call_openai_with_helper("Explain better this answer: " + answer)
+    return second_answer
+
+
 if __name__ == "__main__":
     init_tracing(
         default_usage_details=UsageDetails(
@@ -64,4 +80,6 @@ if __name__ == "__main__":
     print(call_openai_with_helper("What is LLM?"))
     print(call_openai_with_context("What is LLM?"))
     print(multiple_calls_openai("What is LLM?"))
+    print(call_with_user_id_param("What is LLM?", "user_id"))
+    print(call_with_user_id_explicit("What is LLM?"))
     sleep(1)
