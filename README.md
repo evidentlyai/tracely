@@ -4,6 +4,8 @@ from tracely import UsageDetails
 
 Tracely is a tool designed for tracing and monitoring AI model interactions, enabling you to gain real-time insights into your models' performance. This repository offers a straightforward interface for integrating tracing into your Python applications.
 
+📖 **Full documentation**: [Tracely Overview](https://docs.evidentlyai.com/docs/platform/tracing_overview)
+
 ## Getting Started
 
 ### Prerequisites

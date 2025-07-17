@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tracely"
-version = "0.2.6"
+version = "0.2.7"
 description = "Tracing tools"
 authors = ["Emeli Dral <emeli.dral@gmail.com>"]
 license = "Apache-2.0"
