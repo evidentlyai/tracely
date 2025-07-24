@@ -65,7 +65,7 @@ The `trace_event` decorator accepts several arguments:
 
 - `span_name` - the name of the span to send in the event (defaults to the function name)
 - `track_args` - a list of function arguments to include in the event (defaults to `None`, indicating that all arguments should be included)
-- `ingore_args` - a list of function arguments to exclude (defaults to `None`, meaning no arguments are ignored)
+- `ignore_args` - a list of function arguments to exclude (defaults to `None`, meaning no arguments are ignored)
 - `track_output` - indicates whether the event should track the function's return value (defaults to `True`)
 - `parse_output` - indicates whether the result should be parsed (e.g., dict, list, and tuple types would be split into separate fields; defaults to `True`)
 
@@ -147,7 +147,7 @@ from tracely import init_tracing, UsageDetails
 init_tracing(
     default_usage_details=UsageDetails(cost_per_token={
         "input": 0.0005,  # usd per 1 'input' token used
-        "output": 0.0005,  # usd per 1 'input' token used
+        "output": 0.0005,  # usd per 1 'output' token used
     })
 )
 
