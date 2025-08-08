@@ -179,6 +179,8 @@ def _create_tracer_provider(
         tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
     elif processor_type == "simple":
         tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
+    else:
+        raise ValueError(f"Unexpected processor type: {processor_type}. Expected values: batch or simple")
     _tracer = tracer_provider.get_tracer("evidently")
     return tracer_provider
 

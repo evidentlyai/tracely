@@ -222,3 +222,16 @@ with tracely.bind_to_trace(trace_id):
 In this case instead of creating new TraceID for events this events will be bound to trace with given TraceID.
 
 **Warning**: in this case TraceID management is in user responsibility, if user provide duplicated TraceID all events would be bound to same trace.
+
+## Additional configuration
+
+There some additional configuration for `tracely`:
+
+### Processor type
+
+`init_tracing(processor_type='batch')`
+
+- `processor_type` can be one of `batch` or `simple` value
+
+`batch` processor - uses batching for deferred sending traces to exporter. Improve performance in large amount of traces but introduces some delay between event happening and sending to server.
+`simple` processor - calls exporter as soon as event ready, so there is no delay between event happening and its sending to server, but can lead to possible performance issues on large amount of events.
