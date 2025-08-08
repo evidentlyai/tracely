@@ -1,6 +1,8 @@
-from tracely import UsageDetails
-
 # Tracely
+
+[![CI](https://github.com/evidentlyai/tracely/actions/workflows/ci.yaml/badge.svg)](https://github.com/evidentlyai/tracely/actions/workflows/ci.yaml)
+[![PyPI](https://img.shields.io/pypi/v/tracely)](https://pypi.org/project/tracely/)
+
 
 Tracely is a tool designed for tracing and monitoring AI model interactions, enabling you to gain real-time insights into your models' performance. This repository offers a straightforward interface for integrating tracing into your Python applications.
 
