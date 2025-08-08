@@ -11,7 +11,7 @@ from opentelemetry import trace
 from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SimpleSpanProcessor
 from opentelemetry.trace import NonRecordingSpan
 from opentelemetry.trace import SpanContext
 from opentelemetry.trace import TraceFlags
@@ -64,6 +64,7 @@ _data_context: DataContext = DataContext("<not_set>", "<not_set>")
 def _create_tracer_provider(
     address: Optional[str] = None,
     exporter_type: Optional[str] = None,
+    processor_type: str = "batch",
     api_key: Optional[str] = None,
     project_id: Optional[Union[str, uuid.UUID]] = None,
     export_name: Optional[str] = None,
@@ -174,7 +175,12 @@ def _create_tracer_provider(
         exporter = InMemorySpanExporter()
     else:
         raise ValueError("Unexpected value of exporter type")
-    tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
+    if processor_type == "batch":
+        tracer_provider.add_span_processor(BatchSpanProcessor(exporter))
+    elif processor_type == "simple":
+        tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
+    else:
+        raise ValueError(f"Unexpected processor type: {processor_type}. Expected values: batch or simple")
     _tracer = tracer_provider.get_tracer("evidently")
     return tracer_provider
 
@@ -187,6 +193,7 @@ def init_tracing(
     export_name: Optional[str] = None,
     *,
     as_global: bool = True,
+    processor_type: str = "batch",
     default_usage_details: Optional[UsageDetails] = None,
     usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
 ) -> trace.TracerProvider:
@@ -201,11 +208,18 @@ def init_tracing(
         as_global: indicated when to register provider globally for opentelemetry of use local one
                    Can be useful when you don't want to mix already existing OpenTelemetry tracing with Evidently one,
                    but may require additional configuration
+        processor_type: (default: batch) type of processor to use:
+                        'batch' - upload traces in batches once in several seconds in separate thread
+                        'simple' - upload traces synchronously as it is reported, can cause performance issues.
+        default_usage_details: usage data for tokens
+        usage_details_by_model_id: usage data for tokens by model id (if provided)
+
     """
     global _tracer  # noqa: PLW0603
     provider = _create_tracer_provider(
         address,
         exporter_type,
+        processor_type,
         api_key,
         project_id,
         export_name,
