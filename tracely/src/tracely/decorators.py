@@ -5,9 +5,11 @@ from typing import Any, Callable, List, Optional
 from opentelemetry.trace import StatusCode
 
 import tracely
-from . import _tracer_provider
+from ._context import get_interceptors
+from ._context import get_tracer
+from .interceptors import InterceptorContext
 from .proxy import set_result
-from .proxy import _ProxySpanObject
+from .proxy import SpanObject
 
 
 def _fill_span_from_signature(
@@ -15,7 +17,7 @@ def _fill_span_from_signature(
     ignore_args: Optional[List[str]],
     sign: Signature,
     bind: BoundArguments,
-    span: _ProxySpanObject,
+    span: SpanObject,
 ):
     final_args = track_args
     if final_args is None:
@@ -60,16 +62,27 @@ def trace_event(
 
                 sign = inspect.signature(f)
                 bind = sign.bind(*args, **kwargs)
+                interceptor_context = InterceptorContext()
                 with tracely.create_trace_event(f"{span_name or f.__name__}", parse_output) as span:
                     _fill_span_from_signature(track_args, ignore_args, bind.signature, bind, span)
+                    for interceptor in get_interceptors():
+                        interceptor.before_call(span, interceptor_context, *args, **kwargs)
                     try:
                         result = await f(*args, **kwargs)
                         if result is not None and track_output:
                             span.set_result(result)
+                            for interceptor in get_interceptors():
+                                interceptor.after_call(span, interceptor_context, result)
                         span.set_status(StatusCode.OK)
                     except Exception as e:
-                        span.set_attribute("exception", str(e))
-                        span.set_status(StatusCode.ERROR)
+                        processed = False
+                        for interceptor in get_interceptors():
+                            processed = processed or interceptor.on_exception(
+                                span, interceptor_context, *args, **kwargs
+                            )
+                        if not processed:
+                            span.set_attribute("exception", str(e))
+                            span.set_status(StatusCode.ERROR)
                         raise
                 return result
 
@@ -80,19 +93,30 @@ def trace_event(
             def func(*args, **kwargs):
                 import inspect
 
-                _tracer = _tracer_provider.get_tracer()
+                _tracer = get_tracer()
                 sign = inspect.signature(f)
                 bind = sign.bind(*args, **kwargs)
+                interceptor_context = InterceptorContext()
                 with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
                     _fill_span_from_signature(track_args, ignore_args, bind.signature, bind, span)
+                    for interceptor in get_interceptors():
+                        interceptor.before_call(span, interceptor_context, *args, **kwargs)
                     try:
                         result = f(*args, **kwargs)
                         if result is not None and track_output:
                             set_result(span, result, parse_output)
+                            for interceptor in get_interceptors():
+                                interceptor.after_call(span, interceptor_context, result)
                         span.set_status(StatusCode.OK)
                     except Exception as e:
-                        span.set_attribute("exception", str(e))
-                        span.set_status(StatusCode.ERROR)
+                        processed = False
+                        for interceptor in get_interceptors():
+                            processed = processed or interceptor.on_exception(
+                                span, interceptor_context, *args, **kwargs
+                            )
+                        if not processed:
+                            span.set_attribute("exception", str(e))
+                            span.set_status(StatusCode.ERROR)
                         raise
                 return result
 

@@ -4,12 +4,13 @@ from typing import Generator
 
 import opentelemetry.sdk.trace
 
-from . import _tracer_provider
-from .proxy import _ProxySpanObject
+from ._context import get_tracer
+from ._context import create_context
+from .proxy import SpanObject
 
 
 @contextmanager
-def create_trace_event(name: str, **params) -> Generator[_ProxySpanObject, None, None]:
+def create_trace_event(name: str, **params) -> Generator[SpanObject, None, None]:
     """
     Create a span with given name.
 
@@ -20,9 +21,9 @@ def create_trace_event(name: str, **params) -> Generator[_ProxySpanObject, None,
     Returns:
         span object to work with
     """
-    _tracer = _tracer_provider.get_tracer()
+    _tracer = get_tracer()
     with _tracer.start_as_current_span(f"{name}") as span:
-        obj = _ProxySpanObject(span)
+        obj = SpanObject(span)
         try:
             yield obj
         finally:
@@ -32,7 +33,7 @@ def create_trace_event(name: str, **params) -> Generator[_ProxySpanObject, None,
 
 @contextmanager
 def bind_to_trace(trace_id: int, parent_span_id: Optional[int] = None):
-    context = _tracer_provider.create_context(trace_id, parent_span_id)
+    context = create_context(trace_id, parent_span_id)
     token = opentelemetry.sdk.trace.context_api.attach(context)
     try:
         yield

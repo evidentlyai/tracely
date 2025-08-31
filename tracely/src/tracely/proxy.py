@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
     from openai.types.responses import ResponseUsage
 
 
-class _ProxySpanObject:
+class SpanObject:
     def __init__(self, span: Optional[opentelemetry.trace.Span] = None):
         if span is None:
             self.span = opentelemetry.trace.get_current_span()
@@ -75,7 +75,7 @@ class _ProxySpanObject:
 
 
 def get_current_span():
-    return _ProxySpanObject()
+    return SpanObject()
 
 
 def set_result(span, result, parse_output: bool):
