@@ -1,10 +1,21 @@
 import abc
+from typing import Any
+from typing import Dict
 
 from tracely.proxy import SpanObject
 
 
 class InterceptorContext:
-    pass
+    data: Dict[str, Any]
+
+    def __init__(self):
+        self.data = {}
+
+    def set(self, key: str, value):
+        self.data[key] = value
+
+    def get(self, key: str):
+        return self.data.get(key)
 
 
 class Interceptor:

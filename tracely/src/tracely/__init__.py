@@ -6,8 +6,10 @@ from ._context import get_tracer
 from .decorators import trace_event
 from .context import create_trace_event
 from .context import bind_to_trace
-from .proxy import get_current_span
+from .interceptors import Interceptor
 from .proxy import SpanObject
+from ._runtime_context import get_current_span
+from ._runtime_context import RuntimeContext
 from ._version import __version__
 
 
@@ -20,6 +22,7 @@ __all__ = [
     "get_interceptors",
     "init_tracing",
     "bind_to_trace",
+    "Interceptor",
     "trace_event",
     "SpanObject",
     "__version__",

@@ -12,6 +12,7 @@ if typing.TYPE_CHECKING:
 
 class SpanObject:
     def __init__(self, span: Optional[opentelemetry.trace.Span] = None):
+        self.context = {}
         if span is None:
             self.span = opentelemetry.trace.get_current_span()
         else:
@@ -45,6 +46,15 @@ class SpanObject:
                 raise ValueError("Must specify either tokens or usage")
             self._update_usage(tokens=tokens, costs=costs)
 
+    def set_context_value(self, key, value):
+        self.context[key] = value
+
+    def get_context_value(self, key):
+        return self.context.get(key)
+
+    def get_context(self):
+        return self.context
+
     def _update_usage(
         self,
         *,
@@ -73,9 +83,8 @@ class SpanObject:
             },
         )
 
-
-def get_current_span():
-    return SpanObject()
+    def set_status(self, status):
+        self.span.set_status(status)
 
 
 def set_result(span, result, parse_output: bool):

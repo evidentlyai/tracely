@@ -7,9 +7,11 @@ from opentelemetry.trace import StatusCode
 import tracely
 from ._context import get_interceptors
 from ._context import get_tracer
-from .interceptors import InterceptorContext
-from .proxy import set_result
 from .proxy import SpanObject
+from .proxy import set_result
+from ._runtime_context import get_current_span
+from ._runtime_context import set_current_span
+from .interceptors import InterceptorContext
 
 
 def _fill_span_from_signature(
@@ -77,9 +79,7 @@ def trace_event(
                     except Exception as e:
                         processed = False
                         for interceptor in get_interceptors():
-                            processed = processed or interceptor.on_exception(
-                                span, interceptor_context, *args, **kwargs
-                            )
+                            processed = processed or interceptor.on_exception(span, interceptor_context, e)
                         if not processed:
                             span.set_attribute("exception", str(e))
                             span.set_status(StatusCode.ERROR)
@@ -97,7 +97,10 @@ def trace_event(
                 sign = inspect.signature(f)
                 bind = sign.bind(*args, **kwargs)
                 interceptor_context = InterceptorContext()
-                with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
+                with _tracer.start_as_current_span(f"{span_name or f.__name__}") as otel_span:
+                    prev_span = get_current_span()
+                    span = SpanObject(otel_span)
+                    set_current_span(span)
                     _fill_span_from_signature(track_args, ignore_args, bind.signature, bind, span)
                     for interceptor in get_interceptors():
                         interceptor.before_call(span, interceptor_context, *args, **kwargs)
@@ -111,13 +114,13 @@ def trace_event(
                     except Exception as e:
                         processed = False
                         for interceptor in get_interceptors():
-                            processed = processed or interceptor.on_exception(
-                                span, interceptor_context, *args, **kwargs
-                            )
+                            processed = processed or interceptor.on_exception(span, interceptor_context, e)
                         if not processed:
                             span.set_attribute("exception", str(e))
                             span.set_status(StatusCode.ERROR)
                         raise
+                    finally:
+                        set_current_span(prev_span)
                 return result
 
             return func
