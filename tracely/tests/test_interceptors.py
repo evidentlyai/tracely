@@ -98,7 +98,7 @@ def test_trace_func_with_output(exporter):
 
 def test_trace_func_with_output_failed_deco(exporter):
     with pytest.raises(MyException):
-        result = trace_func_with_output_failed_deco()
+        trace_func_with_output_failed_deco()
 
     spans = exporter.get_finished_spans()
     assert len(spans) == 1

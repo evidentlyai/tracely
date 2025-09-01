@@ -25,5 +25,6 @@ __all__ = [
     "Interceptor",
     "trace_event",
     "SpanObject",
+    "RuntimeContext",
     "__version__",
 ]
