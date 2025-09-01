@@ -66,7 +66,9 @@ def stub_deco(fail, message):
             if fail:
                 raise MyException(message)
             return func(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 

@@ -19,6 +19,7 @@ class RuntimeContext:
 
 _DEFAULT_CONTEXT = RuntimeContext()
 
+
 def get_current_span(context: Optional[RuntimeContext] = None) -> Optional[SpanObject]:
     if context is None:
         return _DEFAULT_CONTEXT.get_current_span()
