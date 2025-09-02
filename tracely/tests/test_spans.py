@@ -23,6 +23,10 @@ def trace_func_with_output_struct():
         "f2": 100,
     }
 
+@trace_event()
+def trace_func_with_inner_trace():
+    return trace_func_with_output()
+
 
 @trace_event(track_output=True, parse_output=True)
 def trace_func_with_tokens():
@@ -155,3 +159,12 @@ def test_trace_func_with_tokens(exporter):
     assert span.attributes["tokens.output"] == 200
     assert span.attributes["cost.input"] == 0.1
     assert span.attributes["cost.output"] == 1.0
+
+
+def test_trace_func_with_inner_trace(exporter):
+    trace_func_with_inner_trace()
+
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 2
+    assert spans[0].name == "trace_func_with_output"
+    assert spans[1].name == "trace_func_with_inner_trace"
