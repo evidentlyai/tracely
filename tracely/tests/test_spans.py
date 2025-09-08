@@ -23,6 +23,7 @@ def trace_func_with_output_struct():
         "f2": 100,
     }
 
+
 @trace_event()
 def trace_func_with_inner_trace():
     return trace_func_with_output()
