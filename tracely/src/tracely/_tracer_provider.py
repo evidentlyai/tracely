@@ -1,14 +1,13 @@
-import dataclasses
 import urllib.parse
 import uuid
 from typing import Dict
+from typing import List
 from typing import Optional
 from typing import Union
 
 import opentelemetry.trace
 import requests
 from opentelemetry import trace
-from opentelemetry.context import Context
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SimpleSpanProcessor
@@ -16,6 +15,9 @@ from opentelemetry.trace import NonRecordingSpan
 from opentelemetry.trace import SpanContext
 from opentelemetry.trace import TraceFlags
 
+from ._context import UsageDetails
+from ._context import _data_context
+from ._context import set_tracer
 from ._env import (
     _EVIDENTLY_API_KEY,
     _TRACE_COLLECTOR_ADDRESS,
@@ -25,40 +27,7 @@ from ._env import (
     _TRACE_COLLECTOR_PROJECT_ID,
 )
 from .evidently_cloud_client import EvidentlyCloudClient
-
-
-@dataclasses.dataclass
-class UsageDetails:
-    cost_per_token: Dict[str, float]
-
-
-class DataContext:
-    export_id: Union[str, uuid.UUID]
-    project_id: Union[str, uuid.UUID]
-    default_usage_details: Optional[UsageDetails]
-    usage_details_by_model_id: Optional[Dict[str, UsageDetails]]
-
-    def __init__(
-        self,
-        export_id: str,
-        project_id: str,
-        default_usage_details: Optional[UsageDetails] = None,
-        usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
-    ):
-        self.export_id = export_id
-        self.project_id = project_id
-        self.default_usage_details = default_usage_details
-        self.usage_details_by_model_id = usage_details_by_model_id
-
-    def get_model_usage_details(self, model_id: str) -> Optional[UsageDetails]:
-        if self.usage_details_by_model_id is None:
-            return self.default_usage_details
-        return self.usage_details_by_model_id.get(model_id, self.default_usage_details)
-
-
-_tracer: Optional[trace.Tracer] = None
-_context: Optional[Context] = None
-_data_context: DataContext = DataContext("<not_set>", "<not_set>")
+from .interceptors import Interceptor
 
 
 def _create_tracer_provider(
@@ -70,6 +39,7 @@ def _create_tracer_provider(
     export_name: Optional[str] = None,
     default_usage_details: Optional[UsageDetails] = None,
     usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
+    interceptors: Optional[List[Interceptor]] = None,
 ) -> trace.TracerProvider:
     """
     Creates Evidently telemetry tracer provider which would be used for sending traces.
@@ -80,7 +50,6 @@ def _create_tracer_provider(
         project_id: id of project in Evidently Cloud
         export_name: string name of exported data, all data with same id would be grouped into single dataset
     """
-    global _tracer  # noqa: PLW0603
 
     _address = address or _TRACE_COLLECTOR_ADDRESS
     if len(_address) == 0:
@@ -140,6 +109,7 @@ def _create_tracer_provider(
     _data_context.project_id = uuid.UUID(_project_id)
     _data_context.default_usage_details = default_usage_details
     _data_context.usage_details_by_model_id = usage_details_by_model_id
+    _data_context.interceptors = interceptors or []
 
     tracer_provider = TracerProvider(
         resource=Resource.create(
@@ -181,7 +151,7 @@ def _create_tracer_provider(
         tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
     else:
         raise ValueError(f"Unexpected processor type: {processor_type}. Expected values: batch or simple")
-    _tracer = tracer_provider.get_tracer("evidently")
+    set_tracer(tracer_provider.get_tracer("evidently"))
     return tracer_provider
 
 
@@ -196,6 +166,7 @@ def init_tracing(
     processor_type: str = "batch",
     default_usage_details: Optional[UsageDetails] = None,
     usage_details_by_model_id: Optional[Dict[str, UsageDetails]] = None,
+    interceptors: Optional[List[Interceptor]] = None,
 ) -> trace.TracerProvider:
     """
     Initialize Evidently tracing
@@ -213,9 +184,9 @@ def init_tracing(
                         'simple' - upload traces synchronously as it is reported, can cause performance issues.
         default_usage_details: usage data for tokens
         usage_details_by_model_id: usage data for tokens by model id (if provided)
+        interceptors: list of interceptors to use
 
     """
-    global _tracer  # noqa: PLW0603
     provider = _create_tracer_provider(
         address,
         exporter_type,
@@ -225,20 +196,15 @@ def init_tracing(
         export_name,
         default_usage_details,
         usage_details_by_model_id,
+        interceptors,
     )
 
     if as_global:
         trace.set_tracer_provider(provider)
-        _tracer = trace.get_tracer("evidently")
+        set_tracer(trace.get_tracer("evidently"))
     else:
-        _tracer = provider.get_tracer("evidently")
+        set_tracer(provider.get_tracer("evidently"))
     return provider
-
-
-def get_tracer() -> trace.Tracer:
-    if _tracer is None:
-        raise ValueError("TracerProvider not initialized, use init_tracer()")
-    return _tracer
 
 
 def create_context(trace_id: int, parent_span_id: Optional[int]):
@@ -248,10 +214,3 @@ def create_context(trace_id: int, parent_span_id: Optional[int]):
     span_context = SpanContext(trace_id=trace_id, span_id=parent_span_id, is_remote=True, trace_flags=TraceFlags(0x01))
     context = opentelemetry.trace.set_span_in_context(NonRecordingSpan(span_context))
     return context
-
-
-def get_info():
-    return {
-        "export_id": _data_context.export_id,
-        "project_id": _data_context.project_id,
-    }
