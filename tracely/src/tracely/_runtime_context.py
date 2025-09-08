@@ -7,7 +7,7 @@ class RuntimeContext:
     def __init__(self):
         self.span = None
 
-    def set_current_span(self, span: SpanObject):
+    def set_current_span(self, span: Optional[SpanObject]):
         self.span = span
 
     def get_current_span(self) -> Optional[SpanObject]:
@@ -26,7 +26,7 @@ def get_current_span(context: Optional[RuntimeContext] = None) -> Optional[SpanO
     return context.get_current_span()
 
 
-def set_current_span(span: SpanObject, context: Optional[RuntimeContext] = None):
+def set_current_span(span: Optional[SpanObject], context: Optional[RuntimeContext] = None):
     if context is None:
         _DEFAULT_CONTEXT.set_current_span(span)
     else:

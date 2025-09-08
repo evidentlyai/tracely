@@ -11,6 +11,8 @@ if typing.TYPE_CHECKING:
 
 
 class SpanObject:
+    context: Dict[str, typing.Any]
+
     def __init__(self, span: Optional[opentelemetry.trace.Span] = None):
         self.context = {}
         if span is None:

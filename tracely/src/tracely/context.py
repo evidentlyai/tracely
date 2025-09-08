@@ -24,6 +24,8 @@ def create_trace_event(name: str, **params) -> Generator[SpanObject, None, None]
         span object to work with
     """
     _tracer = get_tracer()
+    if _tracer is None:
+        raise ValueError("tracer not initialized")
     with _tracer.start_as_current_span(f"{name}") as span:
         obj = SpanObject(span)
         prev_span = get_current_span()
