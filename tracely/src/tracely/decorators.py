@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Optional
 
 from opentelemetry.trace import StatusCode
 
-import tracely
 from ._context import get_interceptors
 from ._context import get_tracer
 from .proxy import SpanObject
@@ -62,17 +61,18 @@ def trace_event(
             async def func(*args, **kwargs):
                 import inspect
 
+                _tracer = get_tracer()
                 sign = inspect.signature(f)
                 bind = sign.bind(*args, **kwargs)
                 interceptor_context = InterceptorContext()
-                with tracely.create_trace_event(f"{span_name or f.__name__}", parse_output) as span:
+                with _tracer.start_as_current_span(f"{span_name or f.__name__}") as span:
                     _fill_span_from_signature(track_args, ignore_args, bind.signature, bind, span)
                     for interceptor in get_interceptors():
                         interceptor.before_call(span, interceptor_context, *args, **kwargs)
                     try:
                         result = await f(*args, **kwargs)
                         if result is not None and track_output:
-                            span.set_result(result)
+                            set_result(span, result, parse_output)
                             for interceptor in get_interceptors():
                                 interceptor.after_call(span, interceptor_context, result)
                         span.set_status(StatusCode.OK)

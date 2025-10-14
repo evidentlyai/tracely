@@ -16,6 +16,11 @@ def trace_func_with_output():
     return 100
 
 
+@trace_event(track_output=True)
+async def async_trace_func_with_output():
+    return 100
+
+
 @trace_event(track_output=True, parse_output=True)
 def trace_func_with_output_struct():
     return {
@@ -135,6 +140,17 @@ def test_trace_func_with_output(exporter):
     assert len(spans) == 1
     span = spans[0]
     assert span.name == "trace_func_with_output"
+    assert span.attributes["result"] == result
+
+
+@pytest.mark.asyncio
+async def test_async_trace_func_with_output(exporter):
+    result = await async_trace_func_with_output()
+
+    spans = exporter.get_finished_spans()
+    assert len(spans) == 1
+    span = spans[0]
+    assert span.name == "async_trace_func_with_output"
     assert span.attributes["result"] == result
 
 
