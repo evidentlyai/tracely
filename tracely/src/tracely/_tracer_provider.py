@@ -27,6 +27,7 @@ from ._env import (
     _TRACE_COLLECTOR_PROJECT_ID,
 )
 from .evidently_cloud_client import EvidentlyCloudClient
+from .evidently_oss_client import EvidentlyOSSClient
 from .interceptors import Interceptor
 
 
@@ -81,9 +82,35 @@ def _create_tracer_provider(
             "or EVIDENTLY_TRACE_COLLECTOR_PROJECT_ID env variable"
         )
 
+    # Detect OSS mode by checking if /api/users/login endpoint exists
+    # Cloud has this endpoint, OSS doesn't
+    is_oss_mode = False
     if _exporter_type not in ("console", "inmemory"):
-        cloud = EvidentlyCloudClient(_address, _api_key)
-        datasets_response: requests.Response = cloud.request(
+        try:
+            # Try to check if cloud login endpoint exists
+            test_session = requests.Session()
+            login_url = urllib.parse.urljoin(_address, "/api/users/login")
+            response = test_session.get(
+                login_url,
+                headers={"X-Evidently-Token": _api_key or "test"},
+                timeout=2,
+            )
+            # If we get a response (even 401/403), the endpoint exists (Cloud mode)
+            # Only 404 means the endpoint doesn't exist (OSS mode)
+            if response.status_code == 404:
+                is_oss_mode = True
+        except (requests.exceptions.HTTPError, requests.exceptions.RequestException, requests.exceptions.Timeout):
+            # If request fails (network error, timeout, etc.), assume OSS mode
+            is_oss_mode = True
+
+    if _exporter_type not in ("console", "inmemory"):
+        # Use same logic for both OSS and Cloud, only difference is the client
+        if is_oss_mode:
+            client = EvidentlyOSSClient(_address, _api_key)
+        else:
+            client = EvidentlyCloudClient(_address, _api_key)
+        
+        datasets_response: requests.Response = client.request(
             "/api/datasets",
             "GET",
             query_params={"project_id": _project_id, "source_type": ["tracing"]},
@@ -95,7 +122,7 @@ def _create_tracer_provider(
                 _export_id = dataset["id"]
                 break
         if _export_id is None:
-            resp: requests.Response = cloud.request(
+            resp: requests.Response = client.request(
                 "/api/datasets/tracing",
                 "POST",
                 query_params={"project_id": _project_id},
@@ -104,9 +131,10 @@ def _create_tracer_provider(
 
             _export_id = resp.json()["dataset_id"]
             _data_context.export_id = uuid.UUID(_export_id)
+        _data_context.project_id = uuid.UUID(_project_id)
     else:
         _data_context.export_id = "<not_set>"
-    _data_context.project_id = uuid.UUID(_project_id)
+        _data_context.project_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
     _data_context.default_usage_details = default_usage_details
     _data_context.usage_details_by_model_id = usage_details_by_model_id
     _data_context.interceptors = interceptors or []
@@ -115,7 +143,7 @@ def _create_tracer_provider(
         resource=Resource.create(
             {
                 "evidently.export_id": str(_data_context.export_id),
-                "evidently.project_id": str(_data_context.export_id),
+                "evidently.project_id": str(_data_context.project_id),
             }
         )
     )
@@ -124,17 +152,31 @@ def _create_tracer_provider(
     if _exporter_type == "grpc":
         from opentelemetry.exporter.otlp.proto.grpc import trace_exporter as grpc_exporter
 
+        headers = []
+        if _api_key:
+            if is_oss_mode:
+                headers = [("evidently-secret", _api_key)]
+            else:
+                headers = [("authorization", _api_key)]
         exporter = grpc_exporter.OTLPSpanExporter(
             _address,
-            headers=[] if _api_key is None else [("authorization", _api_key)],
+            headers=headers,
         )
     elif _exporter_type == "http":
         from opentelemetry.exporter.otlp.proto.http import trace_exporter as http_exporter
 
-        exporter = http_exporter.OTLPSpanExporter(
-            urllib.parse.urljoin(_address, "/api/v1/traces"),
-            session=cloud.session(),
-        )
+        if is_oss_mode:
+            oss_client = EvidentlyOSSClient(_address, _api_key)
+            exporter = http_exporter.OTLPSpanExporter(
+                urllib.parse.urljoin(_address, "/api/v1/traces"),
+                session=oss_client.session(),
+            )
+        else:
+            cloud = EvidentlyCloudClient(_address, _api_key)
+            exporter = http_exporter.OTLPSpanExporter(
+                urllib.parse.urljoin(_address, "/api/v1/traces"),
+                session=cloud.session(),
+            )
     elif _exporter_type == "console":
         from opentelemetry.sdk.trace.export import ConsoleSpanExporter
 
