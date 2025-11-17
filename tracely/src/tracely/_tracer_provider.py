@@ -109,7 +109,7 @@ def _create_tracer_provider(
             client = EvidentlyOSSClient(_address, _api_key)
         else:
             client = EvidentlyCloudClient(_address, _api_key)
-        
+
         datasets_response: requests.Response = client.request(
             "/api/datasets",
             "GET",

@@ -33,4 +33,3 @@ class EvidentlyOSSClient:
 
     def session(self) -> requests.Session:
         return self._session
-
