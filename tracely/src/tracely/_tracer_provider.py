@@ -105,6 +105,7 @@ def _create_tracer_provider(
 
     if _exporter_type not in ("console", "inmemory"):
         # Use same logic for both OSS and Cloud, only difference is the client
+        client: Union[EvidentlyOSSClient, EvidentlyCloudClient]
         if is_oss_mode:
             client = EvidentlyOSSClient(_address, _api_key)
         else:
