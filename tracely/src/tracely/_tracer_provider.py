@@ -131,7 +131,7 @@ def _create_tracer_provider(
             )
 
             _export_id = resp.json()["dataset_id"]
-            _data_context.export_id = uuid.UUID(_export_id)
+        _data_context.export_id = uuid.UUID(_export_id)
         _data_context.project_id = uuid.UUID(_project_id)
     else:
         _data_context.export_id = "<not_set>"
